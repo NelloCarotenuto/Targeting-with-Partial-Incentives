@@ -2,6 +2,9 @@ import random
 import snap
 
 
+BASE_SEED = 1
+
+
 def set_random(graph, seed):
     """Sets a random activation threshold for every edge of the graph."""
 
@@ -10,7 +13,7 @@ def set_random(graph, seed):
         raise Exception("Attributes can only be added to networks")
 
     # Set the random seed to be able to reproduce results
-    random.seed(seed)
+    random.seed(BASE_SEED + seed)
 
     # Generate a random threshold for each edge in the graph and add it
     for destination in graph.Nodes():
