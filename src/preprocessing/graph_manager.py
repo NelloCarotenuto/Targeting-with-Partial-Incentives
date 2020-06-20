@@ -1,9 +1,20 @@
-import os.path as path
+import os
 import snap
 
+from src.definitions import ROOT_DIR
 
-RAW_DATA_DIR = "../../data/raw"
-PROCESSED_DATA_DIR = "../../data/processed"
+RAW_DATA_DIR = f"{ROOT_DIR}/data/raw"
+PROCESSED_DATA_DIR = f"{ROOT_DIR}/data/processed"
+
+
+def __init_data_dirs__():
+    """Creates data directories if they don't exist."""
+
+    # Create directory for raw data if not exists
+    os.makedirs(RAW_DATA_DIR, exist_ok=True)
+
+    # Create directory for processed graphs if not exists
+    os.makedirs(PROCESSED_DATA_DIR, exist_ok=True)
 
 
 def load(file_name, graph_type="network", file_type="TXT", processed=False):
@@ -16,7 +27,7 @@ def load(file_name, graph_type="network", file_type="TXT", processed=False):
         base_dir = RAW_DATA_DIR
 
     # Check that the file exists
-    if not path.isfile(f"{base_dir}/{file_name}"):
+    if not os.path.isfile(f"{base_dir}/{file_name}"):
         raise Exception(f"File {base_dir}/{file_name} does not exist")
 
     # Set the proper graph type for SNAP
@@ -82,4 +93,47 @@ def store(graph, file_name, file_type="binary", processed=True):
         file_output.Flush()
     else:
         raise Exception(f"Files of type {file_type} are not supported")
+
+
+def copy(graph):
+    """Simply clones a graph."""
+
+    # Quickly copy nodes and edges if graph cannot have attributes
+    if not isinstance(graph, snap.PNEANet):
+        return snap.ConvertGraph(type(graph), graph)
+
+    # Create the new graph
+    new_graph = snap.TNEANet.New()
+
+    # Check whether to copy node attributes or not
+    try:
+        graph.GetAttrIndN("threshold")
+        copy_node_thresholds = True
+    except:
+        copy_node_thresholds = False
+
+    # Copy nodes with the associated threshold if set
+    for node in graph.Nodes():
+        new_graph.AddNode(node.GetId())
+
+        if copy_node_thresholds:
+            threshold = graph.GetIntAttrDatN(node, "threshold")
+            new_graph.AddIntAttrDatN(node.GetId(), threshold, "threshold")
+
+    # Check whether to copy edge attributes or not
+    try:
+        graph.GetAttrIndE("threshold")
+        copy_edge_thresholds = True
+    except:
+        copy_edge_thresholds = False
+
+    # Copy edges with the associated threshold if set
+    for edge in graph.Edges():
+        new_graph.AddEdge(edge.GetSrcNId(), edge.GetDstNId(), edge.GetId())
+
+        if copy_edge_thresholds:
+            threshold = graph.GetFltAttrDatE(edge, "threshold")
+            new_graph.AddFltAttrDatE(edge.GetId(), threshold, "threshold")
+
+    return new_graph
 
