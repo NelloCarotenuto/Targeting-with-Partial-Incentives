@@ -7,7 +7,7 @@ RAW_DATA_DIR = f"{ROOT_DIR}/data/raw"
 PROCESSED_DATA_DIR = f"{ROOT_DIR}/data/processed"
 
 
-def __init_data_dirs__():
+def __init_data_dirs():
     """Creates data directories if they don't exist."""
 
     # Create directory for raw data if not exists
