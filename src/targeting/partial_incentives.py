@@ -1,6 +1,89 @@
+import math
 import snap
 
 from src.preprocessing import graph_manager
+
+
+def degree_frac(graph, budget, seed):
+    """Selects each vertex fractionally proportional to its degree."""
+
+    # Ensure attributes can be read from the graph
+    if not isinstance(graph, snap.PNEANet):
+        raise Exception("Attributes can only be read from networks")
+
+    # Store incentive assignments in a dictionary indexed on nodes id
+    incentives = dict()
+
+    # Compute the fractional budget based on the number of edges and keep track of the amount spent
+    budget_fraction = budget / graph.GetEdges()
+    spent = 0
+
+    # Set initial incentives to be proportional to the out-degree of each node
+    for node in graph.Nodes():
+        node_budget = math.floor(budget_fraction * node.GetOutDeg())
+
+        incentives[node.GetId()] = node_budget
+        spent += node_budget
+
+    # Set snap random seed to be able to reproduce results
+    snap.TRnd(seed)
+
+    # Get the remainder unassigned budget and add it randomly
+    remainder = budget - spent
+
+    for i in range(0, remainder):
+        incentives[graph.GetRndNId()] += 1
+
+    return incentives
+
+
+def discount_frac(graph, budget):
+    """Selects the vertex having the highest degree at each step and assigns to it a budged equal to the minimum
+       amount that allows to activate it.
+    """
+
+    # Ensure attributes can be read from the graph
+    if not isinstance(graph, snap.PNEANet):
+        raise Exception("Attributes can only be read from networks")
+
+    # Initialize the target set with the empty set and the unexplored set with the whole set of nodes in the graph
+    target = set()
+    unexplored = set([node.GetId() for node in graph.Nodes()])
+
+    # Store incentive assignments in a dictionary indexed on nodes id
+    incentives = dict((node.GetId(), 0) for node in graph.Nodes())
+
+    while budget > 0 and len(target) < graph.GetNodes():
+        candidate = dict()
+
+        # Find the node with most neighbors not yet activated
+        for node_id in unexplored:
+            node = graph.GetNI(node_id)
+
+            destinations = set(node.GetOutEdges())
+            degree = len(destinations.difference(target))
+
+            if "node" not in candidate or degree > candidate["degree"]:
+                candidate["node"] = node
+                candidate["degree"] = degree
+
+        # Compute node index
+        threshold = graph.GetIntAttrDatN(candidate["node"], "threshold")
+        sources = set(candidate["node"].GetInEdges())
+
+        index = max(0, threshold - len(sources.intersection(target)))
+
+        # Compute node incentive and update budgets
+        incentive = min(budget, index)
+
+        incentives[candidate["node"].GetId()] = incentive
+        budget -= incentive
+
+        # Add the node to the target set
+        unexplored.remove(candidate["node"].GetId())
+        target.add(candidate["node"].GetId())
+
+    return incentives
 
 
 def tpi(graph):
@@ -10,9 +93,6 @@ def tpi(graph):
 
     # Make a temporary copy of the graph to make direct changes
     temp_graph = graph_manager.copy(graph)
-
-    # Store incentive assignments in a dictionary indexed on nodes id
-    incentives = dict()
 
     # Keep track of nodes not examined yet
     unexplored = set([node.GetId() for node in temp_graph.Nodes()])
