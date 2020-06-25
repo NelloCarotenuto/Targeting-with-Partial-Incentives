@@ -1,7 +1,7 @@
 import math
 import snap
 
-from src.preprocessing import graphs_manager
+from src.preprocessing import data_manager
 
 
 def degree_frac(graph, budget, seed):
@@ -81,7 +81,7 @@ def discount_frac(graph, thresholds, budget):
 def tpi(graph, thresholds):
 
     # Make a temporary copy of the graph to make direct changes
-    temp_graph = graphs_manager.copy_graph(graph)
+    temp_graph = data_manager.copy_graph(graph)
     temp_thresholds = thresholds.copy()
 
     # Store incentive assignments in a dictionary indexed on nodes id

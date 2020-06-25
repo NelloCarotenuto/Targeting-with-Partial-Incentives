@@ -1,7 +1,7 @@
 import random
 import snap
 
-from src.preprocessing import graphs_manager
+from src.preprocessing import data_manager
 
 
 __BASE_SEED = -1
@@ -11,7 +11,7 @@ def random_prune(graph, edge_thresholds, seed):
     """Removes edges from the graph by generating random numbers and comparing them to their activation thresholds."""
 
     # Make a copy of the graph
-    new_graph = graphs_manager.copy(graph)
+    new_graph = data_manager.copy_graph(graph)
 
     # Set the random seed to be able to reproduce results
     random.seed(__BASE_SEED - seed)
