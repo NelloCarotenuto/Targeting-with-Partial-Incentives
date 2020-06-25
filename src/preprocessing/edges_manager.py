@@ -1,19 +1,17 @@
 import random
-import snap
 
 
-BASE_SEED = 1
+__BASE_SEED = 1
 
 
-def set_random(graph, seed):
+def random_thresholds(graph, seed):
     """Sets a random activation threshold for every edge of the graph."""
 
-    # Ensure attributes can be set on the graph
-    if not isinstance(graph, snap.PNEANet):
-        raise Exception("Attributes can only be added to networks")
+    # Store threshold assignment in a dictionary
+    thresholds = dict()
 
     # Set the random seed to be able to reproduce results
-    random.seed(BASE_SEED + seed)
+    random.seed(__BASE_SEED + seed)
 
     # Generate a random threshold for each edge in the graph and add it
     for destination in graph.Nodes():
@@ -21,15 +19,16 @@ def set_random(graph, seed):
             edge = graph.GetEI(source, destination.GetId())
             threshold = random.uniform(0, 1)
 
-            graph.AddFltAttrDatE(edge, threshold, "threshold")
+            thresholds[edge.GetId()] = threshold
+
+    return thresholds
 
 
-def set_degree_proportional(graph):
-    """Sets a threshold proportional to the degree of the node."""
+def degree_proportional_thresholds(graph):
+    """Sets the activation threshold for each edge to be proportional to the degree of the destination node."""
 
-    # Ensure attributes can be set on the graph
-    if not isinstance(graph, snap.PNEANet):
-        raise Exception("Attributes can only be added to networks")
+    # Store threshold assignment in a dictionary
+    thresholds = dict()
 
     # Compute the threshold based on the in-degree of each node and add it to its edges
     for destination in graph.Nodes():
@@ -38,5 +37,7 @@ def set_degree_proportional(graph):
 
         for source in destination.GetInEdges():
             edge = graph.GetEI(source, destination.GetId())
-            graph.AddFltAttrDatE(edge, threshold, "threshold")
+            thresholds[edge.GetId()] = threshold
+
+    return thresholds
 

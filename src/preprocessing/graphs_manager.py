@@ -17,7 +17,7 @@ def __init_data_dirs():
     os.makedirs(PROCESSED_DATA_DIR, exist_ok=True)
 
 
-def load(file_name, graph_type="network", file_type="TXT", processed=False):
+def load(file_name, graph_type="directed", file_type="TXT", processed=False):
     """Simply loads a raw/processed graph from .csv, .txt or .graph files from data directory."""
 
     # Set the base directory
@@ -38,7 +38,7 @@ def load(file_name, graph_type="network", file_type="TXT", processed=False):
     elif graph_type == "network":
         graph_snap_type = snap.PNEANet
     else:
-        raise Exception(f"Graphs of type {graph_type} not supported")
+        raise Exception(f"Graphs of type {graph_type} are not supported")
 
     # Read the file according to the specified file format
     if file_type == "CSV":
@@ -98,42 +98,5 @@ def store(graph, file_name, file_type="binary", processed=True):
 def copy(graph):
     """Simply clones a graph."""
 
-    # Quickly copy nodes and edges if graph cannot have attributes
-    if not isinstance(graph, snap.PNEANet):
-        return snap.ConvertGraph(type(graph), graph)
-
-    # Create the new graph
-    new_graph = snap.TNEANet.New()
-
-    # Check whether to copy node attributes or not
-    try:
-        graph.GetAttrIndN("threshold")
-        copy_node_thresholds = True
-    except:
-        copy_node_thresholds = False
-
-    # Copy nodes with the associated threshold if set
-    for node in graph.Nodes():
-        new_graph.AddNode(node.GetId())
-
-        if copy_node_thresholds:
-            threshold = graph.GetIntAttrDatN(node, "threshold")
-            new_graph.AddIntAttrDatN(node.GetId(), threshold, "threshold")
-
-    # Check whether to copy edge attributes or not
-    try:
-        graph.GetAttrIndE("threshold")
-        copy_edge_thresholds = True
-    except:
-        copy_edge_thresholds = False
-
-    # Copy edges with the associated threshold if set
-    for edge in graph.Edges():
-        new_graph.AddEdge(edge.GetSrcNId(), edge.GetDstNId(), edge.GetId())
-
-        if copy_edge_thresholds:
-            threshold = graph.GetFltAttrDatE(edge, "threshold")
-            new_graph.AddFltAttrDatE(edge.GetId(), threshold, "threshold")
-
-    return new_graph
+    return snap.ConvertGraph(type(graph), graph)
 

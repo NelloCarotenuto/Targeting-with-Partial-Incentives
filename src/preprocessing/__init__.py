@@ -1,4 +1,4 @@
-from src.preprocessing import graph_manager
+from src.preprocessing import graphs_manager
 
-graph_manager.__init_data_dirs()
+graphs_manager.__init_data_dirs()
 
