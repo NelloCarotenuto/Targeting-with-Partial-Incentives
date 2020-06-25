@@ -33,6 +33,10 @@ def degree_proportional_thresholds(graph):
     # Compute the threshold based on the in-degree of each node and add it to its edges
     for destination in graph.Nodes():
         degree = destination.GetInDeg()
+
+        if degree == 0:
+            continue
+
         threshold = 1 / degree
 
         for source in destination.GetInEdges():
