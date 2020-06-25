@@ -1,15 +1,11 @@
 import math
 import snap
 
-from src.preprocessing import graph_manager
+from src.preprocessing import graphs_manager
 
 
 def degree_frac(graph, budget, seed):
     """Selects each vertex fractionally proportional to its degree."""
-
-    # Ensure attributes can be read from the graph
-    if not isinstance(graph, snap.PNEANet):
-        raise Exception("Attributes can only be read from networks")
 
     # Store incentive assignments in a dictionary indexed on nodes id
     incentives = dict()
@@ -37,14 +33,10 @@ def degree_frac(graph, budget, seed):
     return incentives
 
 
-def discount_frac(graph, budget):
+def discount_frac(graph, thresholds, budget):
     """Selects the vertex having the highest degree at each step and assigns to it a budged equal to the minimum
        amount that allows to activate it.
     """
-
-    # Ensure attributes can be read from the graph
-    if not isinstance(graph, snap.PNEANet):
-        raise Exception("Attributes can only be read from networks")
 
     # Initialize the target set with the empty set and the unexplored set with the whole set of nodes in the graph
     target = set()
@@ -68,7 +60,7 @@ def discount_frac(graph, budget):
                 candidate["degree"] = degree
 
         # Compute node index
-        threshold = graph.GetIntAttrDatN(candidate["node"], "threshold")
+        threshold = thresholds[candidate["node"].GetId()]
         sources = set(candidate["node"].GetInEdges())
 
         index = max(0, threshold - len(sources.intersection(target)))
@@ -86,20 +78,17 @@ def discount_frac(graph, budget):
     return incentives
 
 
-def tpi(graph):
-    # Ensure attributes can be read from the graph
-    if not isinstance(graph, snap.PNEANet):
-        raise Exception("Attributes can only be read from networks")
+def tpi(graph, thresholds):
 
     # Make a temporary copy of the graph to make direct changes
-    temp_graph = graph_manager.copy(graph)
+    temp_graph = graphs_manager.copy(graph)
+    temp_thresholds = thresholds.copy()
+
+    # Store incentive assignments in a dictionary indexed on nodes id
+    incentives = dict((node.GetId(), 0) for node in graph.Nodes())
 
     # Keep track of nodes not examined yet
     unexplored = set([node.GetId() for node in temp_graph.Nodes()])
-
-    # Initialize values on nodes of temporary graph
-    for node in temp_graph.Nodes():
-        temp_graph.AddIntAttrDatN(node, 0, "incentive")
 
     # Perform operations until all nodes have been examined
     while len(unexplored) > 0:
@@ -111,16 +100,16 @@ def tpi(graph):
             node = temp_graph.GetNI(node_id)
 
             # Get current threshold and in-degree to see if condition holds
-            threshold = temp_graph.GetIntAttrDatN(node, "threshold")
+            threshold = temp_thresholds[node.GetId()]
             in_degree = node.GetInDeg()
 
             if threshold > in_degree:
                 # Get the current incentive for the node
-                incentive = temp_graph.GetIntAttrDatN(node, "incentive")
+                incentive = incentives[node.GetId()]
 
                 # Update both incentive and threshold for the node
-                temp_graph.AddIntAttrDatN(node, incentive + threshold - in_degree, "incentive")
-                temp_graph.AddIntAttrDatN(node, in_degree, "threshold")
+                incentives[node.GetId()] = incentive + threshold - in_degree
+                temp_thresholds[node.GetId()] = in_degree
 
                 # Record a node with a threshold greater than its in-degree has been found
                 threshold_increased = True
@@ -142,7 +131,7 @@ def tpi(graph):
                 node = temp_graph.GetNI(node_id)
 
                 # Get current threshold and in-degree
-                threshold = temp_graph.GetIntAttrDatN(node, "threshold")
+                threshold = temp_thresholds[node.GetId()]
                 in_degree = node.GetInDeg()
 
                 # Compute the index for the node and set it as candidate if condition holds
@@ -163,9 +152,6 @@ def tpi(graph):
 
             # Remove the candidate node from the set of those to be examined
             unexplored.remove(candidate["node"].GetId())
-
-    # Compute the incentives dictionary to be returned
-    incentives = dict((node.GetId(), temp_graph.GetIntAttrDatN(node, "incentive")) for node in temp_graph.Nodes())
 
     return incentives
 
