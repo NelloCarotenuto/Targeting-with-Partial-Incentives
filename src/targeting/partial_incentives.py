@@ -81,7 +81,7 @@ def discount_frac(graph, thresholds, budget):
 def tpi(graph, thresholds):
 
     # Make a temporary copy of the graph to make direct changes
-    temp_graph = graphs_manager.copy(graph)
+    temp_graph = graphs_manager.copy_graph(graph)
     temp_thresholds = thresholds.copy()
 
     # Store incentive assignments in a dictionary indexed on nodes id
@@ -92,8 +92,10 @@ def tpi(graph, thresholds):
 
     # Perform operations until all nodes have been examined
     while len(unexplored) > 0:
+        explored = set()
+
         # Track whether a node with a threshold greater than its in-degree exists or not
-        threshold_increased = False
+        incentive_increased = False
         
         for node_id in unexplored:
             # Get the node iterator from its identifier
@@ -112,16 +114,18 @@ def tpi(graph, thresholds):
                 temp_thresholds[node.GetId()] = in_degree
 
                 # Record a node with a threshold greater than its in-degree has been found
-                threshold_increased = True
+                incentive_increased = True
 
                 # Remove the node if it has no more in-edges
                 if in_degree == 0:
-                    unexplored.remove(node_id)
-                    break
+                    #unexplored.remove(node_id)
+                    explored.add(node_id)
 
-        if threshold_increased:
-            # Jump to the next while iteration if a node has been found having a threshold greater than its in-degree
-            continue
+        unexplored.difference_update(explored)
+
+        if len(unexplored) == 0:
+            # Exit the loop if all nodes have been explored
+            break
         else:
             # Choose a vertex to remove from the graph
             candidate = dict()
@@ -141,11 +145,8 @@ def tpi(graph, thresholds):
                     candidate["node"] = node
                     candidate["index"] = index
 
-            destinations = set()
-
-            for node_id in candidate["node"].GetOutEdges():
-                # Mark the edges going out from the candidate to be removed
-                destinations.add(node_id)
+            # Mark the edges going out from the candidate to be removed
+            destinations = set(candidate["node"].GetOutEdges())
 
             for node_id in destinations:
                 temp_graph.DelEdge(candidate["node"].GetId(), node_id)
