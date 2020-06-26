@@ -4,7 +4,7 @@ import snap
 from src.preprocessing import data_manager
 
 
-__BASE_SEED = -1
+__BASE_SEED = 9223372036854775807
 
 
 def random_prune(graph, edge_thresholds, seed):
