@@ -112,7 +112,7 @@ def store_node_thresholds(thresholds, file_name):
     if not file_name.endswith(".node.thresholds"):
         raise Exception("File name must end with .node.thresholds extension")
 
-    with open(f"{__PROCESSED_DIR}/{file_name}.node.thresholds", "wb") as file:
+    with open(f"{__PROCESSED_DIR}/{file_name}", "wb") as file:
         pickle.dump(thresholds, file, protocol=pickle.HIGHEST_PROTOCOL)
 
 
@@ -139,7 +139,7 @@ def store_incentives(incentives, file_name):
         pickle.dump(incentives, file, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_node_incentives(file_name):
+def load_incentives(file_name):
     """Loads node incentives from a pickle."""
 
     with open(f"{__PROCESSED_DIR}/{file_name}", "rb") as file:
