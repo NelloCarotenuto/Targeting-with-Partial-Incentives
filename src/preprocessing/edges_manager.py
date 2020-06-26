@@ -1,4 +1,5 @@
 import random
+import snap
 
 
 __BASE_SEED = 1
@@ -26,6 +27,9 @@ def random_thresholds(graph, seed):
 
 def degree_proportional_thresholds(graph):
     """Sets the activation threshold for each edge to be proportional to the degree of the destination node."""
+
+    if isinstance(graph, snap.PUNGraph):
+        raise Exception("Degree-proportional thresholds for edges can be set only on directed graphs")
 
     # Store threshold assignment in a dictionary
     thresholds = dict()
