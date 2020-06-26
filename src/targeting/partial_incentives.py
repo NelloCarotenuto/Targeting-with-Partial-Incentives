@@ -38,42 +38,40 @@ def discount_frac(graph, thresholds, budget):
        amount that allows to activate it.
     """
 
-    # Initialize the target set with the empty set and the unexplored set with the whole set of nodes in the graph
-    target = set()
-    unexplored = set([node.GetId() for node in graph.Nodes()])
+    # Initialize the set of unexplored nodes in a dictionary with their current number of unexplored nodes pointed
+    unexplored = {node.GetId(): node.GetOutDeg() for node in graph.Nodes()}
+
+    # Store the current number of explored nodes pointing to each node
+    neighbors_explored = {node.GetId(): 0 for node in graph.Nodes()}
 
     # Store incentive assignments in a dictionary indexed on nodes id
     incentives = dict((node.GetId(), 0) for node in graph.Nodes())
 
-    while budget > 0 and len(target) < graph.GetNodes():
-        candidate = dict()
-
-        # Find the node with most neighbors not yet activated
-        for node_id in unexplored:
-            node = graph.GetNI(node_id)
-
-            destinations = set(node.GetOutEdges())
-            degree = len(destinations.difference(target))
-
-            if "node" not in candidate or degree > candidate["degree"]:
-                candidate["node"] = node
-                candidate["degree"] = degree
+    while budget > 0 and len(unexplored) > 0:
+        # Get the identifier of the node with most unexplored neighbors
+        max_id = max(unexplored, key=unexplored.get)
+        candidate = graph.GetNI(max_id)
 
         # Compute node index
-        threshold = thresholds[candidate["node"].GetId()]
-        sources = set(candidate["node"].GetInEdges())
-
-        index = max(0, threshold - len(sources.intersection(target)))
+        threshold = thresholds[candidate.GetId()]
+        index = max(0, threshold - neighbors_explored[max_id])
 
         # Compute node incentive and update budgets
         incentive = min(budget, index)
 
-        incentives[candidate["node"].GetId()] = incentive
+        incentives[candidate.GetId()] = incentive
         budget -= incentive
 
+        # Lower the number of unexplored neighbors for each node that points to the candidate
+        for node_id in set(candidate.GetInEdges()).intersection(unexplored.keys()):
+            unexplored[node_id] -= 1
+
+        # Increase the number of explored neighbors for each node pointed by the candidate
+        for node_id in candidate.GetOutEdges():
+            neighbors_explored[node_id] += 1
+
         # Add the node to the target set
-        unexplored.remove(candidate["node"].GetId())
-        target.add(candidate["node"].GetId())
+        unexplored.pop(candidate.GetId())
 
     return incentives
 
