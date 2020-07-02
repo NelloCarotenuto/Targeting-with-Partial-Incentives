@@ -45,7 +45,7 @@ def discount_frac(graph, thresholds, budget):
     neighbors_explored = {node.GetId(): 0 for node in graph.Nodes()}
 
     # Store incentive assignments in a dictionary indexed on nodes id
-    incentives = dict((node.GetId(), 0) for node in graph.Nodes())
+    incentives = {node.GetId(): 0 for node in graph.Nodes()}
 
     while budget > 0 and len(unexplored) > 0:
         # Get the identifier of the node with most unexplored neighbors
@@ -56,7 +56,7 @@ def discount_frac(graph, thresholds, budget):
         threshold = thresholds[candidate.GetId()]
         index = max(0, threshold - neighbors_explored[max_id])
 
-        # Compute node incentive and update budgets
+        # Compute node incentive and update the budget
         incentive = min(budget, index)
 
         incentives[candidate.GetId()] = incentive
@@ -83,18 +83,27 @@ def tpi(graph, thresholds):
     temp_thresholds = thresholds.copy()
 
     # Store incentive assignments in a dictionary indexed on nodes id
-    incentives = dict((node.GetId(), 0) for node in graph.Nodes())
+    incentives = {node.GetId(): 0 for node in graph.Nodes()}
 
     # Keep track of nodes not examined yet
-    unexplored = set([node.GetId() for node in temp_graph.Nodes()])
+    unexplored = {}
+
+    for node in temp_graph.Nodes():
+        # Get current threshold and in-degree
+        threshold = temp_thresholds[node.GetId()]
+        in_degree = node.GetInDeg()
+
+        if in_degree == 0:
+            index = threshold
+        else:
+            index = (threshold * (threshold + 1)) / (in_degree * (in_degree + 1))
+
+        unexplored[node.GetId()] = index
 
     # Perform operations until all nodes have been examined
     while len(unexplored) > 0:
         explored = set()
 
-        # Track whether a node with a threshold greater than its in-degree exists or not
-        incentive_increased = False
-        
         for node_id in unexplored:
             # Get the node iterator from its identifier
             node = temp_graph.GetNI(node_id)
@@ -111,46 +120,28 @@ def tpi(graph, thresholds):
                 incentives[node.GetId()] = incentive + threshold - in_degree
                 temp_thresholds[node.GetId()] = in_degree
 
-                # Record a node with a threshold greater than its in-degree has been found
-                incentive_increased = True
-
                 # Remove the node if it has no more in-edges
                 if in_degree == 0:
-                    #unexplored.remove(node_id)
                     explored.add(node_id)
 
-        unexplored.difference_update(explored)
+        # Remove all nodes with 0 in-degree
+        for node_id in explored:
+            unexplored.pop(node_id)
 
         if len(unexplored) == 0:
             # Exit the loop if all nodes have been explored
             break
         else:
             # Choose a vertex to remove from the graph
-            candidate = dict()
-
-            for node_id in unexplored:
-                # Get the node iterator from its identifier
-                node = temp_graph.GetNI(node_id)
-
-                # Get current threshold and in-degree
-                threshold = temp_thresholds[node.GetId()]
-                in_degree = node.GetInDeg()
-
-                # Compute the index for the node and set it as candidate if condition holds
-                index = (threshold * (threshold + 1)) / (in_degree * (in_degree + 1))
-
-                if "node" not in candidate or index > candidate["index"]:
-                    candidate["node"] = node
-                    candidate["index"] = index
+            max_id = max(unexplored, key=unexplored.get)
+            candidate = graph.GetNI(max_id)
 
             # Mark the edges going out from the candidate to be removed
-            destinations = set(candidate["node"].GetOutEdges())
-
-            for node_id in destinations:
-                temp_graph.DelEdge(candidate["node"].GetId(), node_id)
+            for destination in candidate.GetOutEdges():
+                temp_graph.DelEdge(candidate.GetId(), destination)
 
             # Remove the candidate node from the set of those to be examined
-            unexplored.remove(candidate["node"].GetId())
+            unexplored.pop(candidate.GetId())
 
     return incentives
 
